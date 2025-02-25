@@ -100,20 +100,25 @@ def run_vanilla_IS(pi_b, pi_e, reward_means, reward_stds, num_runs=1000):
   # TODO: May need to add more args eventually
   pass
 
+
 def run_DM():
   pass
+
 
 def run_ISplus():
   # AKA C-IS from Shengpu's paper
   pass
 
+
 # Performed the best in Aishwarya's CANDOR paper
 def run_DMplus_IS():
   pass
 
+
 # Not sure if we'll need this.
 def run_DM_ISplus():
   pass
+
 
 # Not sure if we'll need this.
 def run_DMplus_ISplus():
