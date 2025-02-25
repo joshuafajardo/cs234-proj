@@ -16,6 +16,7 @@ from trajectories import *
 RNG = np.random.default_rng(234)
 
 
+# STATUS: Needs testing
 def generate_trajectories(
     state_distribution: np.ndarray,
     reward_means: np.ndarray,
@@ -48,9 +49,11 @@ def generate_trajectories(
   
   return trajectories
 
+
+# STATUS: Needs testing
 def generate_annotations(
-    counterfac_probs: np.ndarray,
     trajectories: list[Trajectory],
+    counterfac_probs: np.ndarray,
     annotated_reward_means: np.ndarray,
     annotated_reward_stds: np.ndarray,
 ):
@@ -93,33 +96,66 @@ def generate_annotations(
   return all_annotations
 
 
-def run_vanilla_IS(pi_b, pi_e, reward_means, reward_stds, num_runs=1000):
+# STATUS: Needs testing
+def run_vanilla_IS(
+    policy_e: np.ndarray,
+    policy_b: np.ndarray,
+    trajectories: list[Trajectory],
+) -> tuple[np.ndarray, np.ndarray]:
   """
-  Run vanilla Importance Sampling.
+  Run vanilla Importance Sampling to generate an estimate of the value of
+  policy_e for each trajectory.
+
+  Args:
+    policy_e: The evaluation policy
+    policy_b: The behavior policy
+    trajectories: A list of trajectories
+
+  (The policy's value is not to be confused with the policy's value *function*)
+
+  CREDIT: This function is based on a subsection of single_exp_setting() from
+  https://github.com/MLD3/CounterfactualAnnot-SemiOPE/blob/main/synthetic/bandit_compare-2state.ipynb
   """
-  # TODO: May need to add more args eventually
-  pass
+  ordinary_IS_value_estimates = []
+  weighted_IS_value_estimates = []
+  
+  for trajectory in trajectories:
+    states, actions, rewards = trajectory.unpack()
+
+    # Compute the inverse propensity scores for each timestep. Denoted as `rho'
+    # in the literature.
+    inv_prop_scores = policy_e[states, actions] / policy_b[states, actions]
+
+    ordinary_IS_value_estimates.append(np.sum(inv_prop_scores * rewards))
+    weighted_IS_value_estimates.append(np.sum(inv_prop_scores * rewards) / np.sum(inv_prop_scores))
+  
+  return ordinary_IS_value_estimates, weighted_IS_value_estimates
 
 
-def run_DM():
-  pass
-
-
+# STATUS: Needs implementation
 def run_ISplus():
   # AKA C-IS from Shengpu's paper
   pass
 
 
+# STATUS: Needs implementation
+def run_DM():
+  pass
+
+
 # Performed the best in Aishwarya's CANDOR paper
+# STATUS: Needs implementation
 def run_DMplus_IS():
   pass
 
 
 # Not sure if we'll need this.
+# STATUS: Needs implementation
 def run_DM_ISplus():
   pass
 
 
 # Not sure if we'll need this.
+# STATUS: Needs implementation
 def run_DMplus_ISplus():
   pass

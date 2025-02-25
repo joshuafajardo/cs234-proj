@@ -20,7 +20,18 @@ class Trajectory:
     self.actions = actions
     self.rewards = rewards
 
+  def unpack(self):
+    """
+    Convenience function for retrieving the states, actions, and rewards as
+    separate arrays.
+    """
+    return self.states, self.actions, self.rewards
+
   def __iter__(self):
+    """
+    Allows for iteration through the trajectory's timesteps, retrieving
+    (state, action, reward) tuples for each timestep.
+    """
     for i in range(self.num_timesteps):
       yield (self.states[i], self.actions[i], self.rewards[i])
   
