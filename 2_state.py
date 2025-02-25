@@ -28,6 +28,8 @@ def generate_trajectories(
   CREDIT: This function is based on a subsection of single_exp_setting() from
   https://github.com/MLD3/CounterfactualAnnot-SemiOPE/blob/main/synthetic/bandit_compare-2state.ipynb
   """
+  # Not hard-coding these values to 2, in case we want to use this code in a
+  # more general library
   num_states, num_actions = policy.shape
 
   trajectories = []
@@ -37,21 +39,56 @@ def generate_trajectories(
         num_states,
         size=num_runs,
         p=state_distribution)
-    actions = np.array([RNG.choice(num_actions, p=policy[state]) for state in states])
-    rewards = np.array([RNG.normal(loc=reward_means[state, action], scale=reward_stds[state, action]) for state, action in zip(states,actions)])
+    actions = np.array(
+        [RNG.choice(num_actions, p=policy[state]) for state in states])
+    rewards = np.array([
+        RNG.normal(reward_means[state, action], reward_stds[state, action])
+            for state, action in zip(states,actions)])
 
     trajectories.append(Trajectory(states, actions, rewards))
   
   return trajectories
 
-def generate_annotations(trajectories):
+def generate_annotations(
+    counterfac_probs: np.ndarray,
+    trajectories: list[Trajectory],
+    annotated_reward_means: np.ndarray,
+    annotated_reward_stds: np.ndarray,
+):
   """
+  If bias and/or variance is to be added to the annotations, it should be done
+  *before* the reward_[means|stds] are passed to this function.
+
   This function should be called several times in order to generate annotations
   of varying fidelities.
   """
-  # TODO: Add more arguments
-  pass
+  # NOTE: In the original code, they determine the probability of obtaining a
+  # counterfactual annotation based on the actual action observed (i.e.
+  # Pc[xi,ai]). This is fine for the 2-state scenario, but we will want to
+  # modify this behavior if we need to generalize this code to multi-action
+  # scenarios.
+  all_annotations = []
 
+  for trajectory in trajectories:
+    num_timesteps = len(trajectory)
+
+    # Determine which timesteps should receive an annotation
+    curr_counterfac_probs = np.array(
+        [counterfac_probs[state, action] for state, action, _ in trajectory])
+    counterfac_flags = RNG.random(num_timesteps) < curr_counterfac_probs
+
+    # Generate the annotations for all timesteps (regardless of flag)
+    counterfac_rewards = []
+    for state, action, _ in trajectories:
+      counterfac_rewards.append(RNG.normal(
+          annotated_reward_means[state, 1 - action],
+          annotated_reward_stds[state, 1 - action]))
+
+    # Use the flags to mask timesteps that should receive no annotations.
+    counterfac_rewards = np.where(counterfac_flags, counterfac_rewards, np.nan)
+    all_annotations.append(counterfac_rewards)
+
+  return all_annotations
 
 def run_importance_sampling(pi_b, pi_e, reward_means, reward_stds, num_runs=1000):
   pass
