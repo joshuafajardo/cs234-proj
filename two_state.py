@@ -15,6 +15,16 @@ def generate_trajectories(
     num_runs: int = 1000,
 ):
   """
+  Args:
+    state_distribution:  Shape (num_states,). In the original code, this is
+        d0. Since we're in a bandit setting, we can use this distribution for
+        all timesteps.
+    reward_means:  Shape (num_states, num_actions)
+    reward_stds:  Shape (num_states, num_actions)
+    policy:  Shape (num_states, num_actions)
+    trajectory_len:  Trajectory length
+    num_runs:  Number of trajectories to generate
+
   CREDIT: This function is based on a subsection of single_exp_setting() from
   https://github.com/MLD3/CounterfactualAnnot-SemiOPE/blob/main/synthetic/bandit_compare-2state.ipynb
   """
@@ -48,6 +58,13 @@ def generate_annotations(
     annotated_reward_stds: np.ndarray,
 ):
   """
+  Args:
+    trajectories: A list of Trajectory objects.
+    counterfac_probs: Shape (num_states, num_actions). Named `Pc' in the
+        original code.
+    annotated_reward_means: Shape (num_states, num_actions)
+    annotated_reward_stds: Shape (num_states, num_actions)
+
   If bias and/or variance is to be added to the annotations, it should be done
   *before* the reward_[means|stds] are passed to this function.
 
@@ -124,30 +141,13 @@ def run_vanilla_IS(
   return ordinary_IS_value_estimates, weighted_IS_value_estimates
 
 
+# This is the algorithm proposed by Tang & Wiens. Denoted C-IS in their original
+# paper, IS+ in Aishwarya's paper
 # STATUS: Needs implementation
 def run_ISplus():
-  # AKA C-IS from Shengpu's paper
   pass
-
-
-# STATUS: Needs implementation
-def run_DM():
-  pass
-
 
 # Performed the best in Aishwarya's CANDOR paper
 # STATUS: Needs implementation
 def run_DMplus_IS():
-  pass
-
-
-# Not sure if we'll need this.
-# STATUS: Needs implementation
-def run_DM_ISplus():
-  pass
-
-
-# Not sure if we'll need this.
-# STATUS: Needs implementation
-def run_DMplus_ISplus():
   pass
