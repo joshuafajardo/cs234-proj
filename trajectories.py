@@ -1,9 +1,9 @@
-from dataclasses import dataclass
 import numpy as np
 
-@dataclass
+
 class AnnotatedTrajectory:
   pass  # TODO
+
 
 class Trajectory:
   def __init__(
