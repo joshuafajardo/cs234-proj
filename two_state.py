@@ -1,15 +1,4 @@
 import numpy as np
-import pandas as pd
-from IPython.display import display
-import matplotlib.pyplot as plt
-%config InlineBackend.figure_formats = ['svg']
-import matplotlib
-matplotlib.rcParams['text.usetex'] = True
-matplotlib.rcParams['font.sans-serif'] = ['FreeSans']
-import seaborn as sns
-import itertools
-from tqdm import tqdm
-import joblib
 
 from trajectories import *
 
