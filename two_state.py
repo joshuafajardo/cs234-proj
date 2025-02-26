@@ -5,6 +5,20 @@ from trajectories import *
 RNG = np.random.default_rng(234)
 
 
+# TODO: Implement if needed
+def calculate_true_value_function(policy, state_distribution, reward_means, reward_stds):
+  pass
+
+
+# TODO: Implement if needed
+# Tang & Wiens distinguish a policy's value and it's value function; that's why
+# we have this second function here. This calculates a single value for the
+# policy, while the function above gives a value for each state for the given
+# policy.
+def calculate_true_policy_value(policy, state_distribution, reward_means, reward_stds):
+  pass
+
+
 # STATUS: Needs testing
 def generate_trajectories(
     state_distribution: np.ndarray,
@@ -141,8 +155,8 @@ def run_vanilla_IS(
   return ordinary_IS_value_estimates, weighted_IS_value_estimates
 
 
-# This is the algorithm proposed by Tang & Wiens. Denoted C-IS in their original
-# paper, IS+ in Aishwarya's paper
+# This is the algorithm proposed by Tang & Wiens. Denoted as C-IS in their
+# original paper, and as IS+ in Aishwarya's paper.
 # STATUS: Needs implementation
 def run_ISplus():
   pass
