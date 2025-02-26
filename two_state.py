@@ -147,7 +147,13 @@ def run_vanilla_IS(
 def run_ISplus():
   pass
 
+
 # Performed the best in Aishwarya's CANDOR paper
 # STATUS: Needs implementation
 def run_DMplus_IS():
   pass
+
+
+# TODO: We may come up with a new algorithm here for evaluating a policy. If
+# that is the case, then we can treat the above evaluation algorithms as
+# baselines.

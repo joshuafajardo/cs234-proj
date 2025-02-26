@@ -9,3 +9,10 @@ reward_means = np.array([
     [0., 0.],
 ])
 
+
+# TODO: Run IS without any annotations.
+# TODO: Run IS+ and DM+-IS in two scenarios:
+# - With *only* high quality annotations
+# - With *both* high and low quality annotations
+
+
