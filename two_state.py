@@ -1,6 +1,6 @@
 import numpy as np
 
-from trajectories import *
+from trajectory_classes import *
 
 RNG = np.random.default_rng(234)
 

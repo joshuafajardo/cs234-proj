@@ -1,7 +1,7 @@
 import numpy as np
 
 import two_state
-import trajectories
+from trajectory_classes import *
 
 
 # TODO: Run IS without any annotations.
