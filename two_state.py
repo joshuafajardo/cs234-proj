@@ -11,6 +11,7 @@ def generate_trajectories(
     reward_means: np.ndarray,
     reward_stds: np.ndarray,
     policy: np.ndarray,
+    trajectory_len: 1,
     num_runs: int = 1000,
 ):
   """
@@ -26,7 +27,7 @@ def generate_trajectories(
   for _ in range(num_runs):
     states = RNG.choice(
         num_states,
-        size=num_runs,
+        size=trajectory_len,
         p=state_distribution)
     actions = np.array(
         [RNG.choice(num_actions, p=policy[state]) for state in states])
@@ -115,8 +116,10 @@ def run_vanilla_IS(
     # in the literature.
     inv_prop_scores = policy_e[states, actions] / policy_b[states, actions]
 
-    ordinary_IS_value_estimates.append(np.sum(inv_prop_scores * rewards))
-    weighted_IS_value_estimates.append(np.sum(inv_prop_scores * rewards) / np.sum(inv_prop_scores))
+    ordinary_IS_value_estimates.append(
+        np.sum(inv_prop_scores * rewards) / len(trajectory))
+    weighted_IS_value_estimates.append(
+        np.sum(inv_prop_scores * rewards) / np.sum(inv_prop_scores))
   
   return ordinary_IS_value_estimates, weighted_IS_value_estimates
 
