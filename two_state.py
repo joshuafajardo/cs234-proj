@@ -25,7 +25,7 @@ def generate_trajectories(
     reward_means: np.ndarray,
     reward_stds: np.ndarray,
     policy: np.ndarray,
-    trajectory_len: 1,
+    trajectory_len: int = 1,
     num_runs: int = 1000,
 ):
   """

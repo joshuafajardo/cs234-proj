@@ -16,7 +16,7 @@ from trajectory_classes import *
 # ==============================================================================
 
 def verify_IS_behavior():
-  state_distribution = np.array([0.5, 0.5])
+  state_distribution = np.array([1, 0])  # Only ever start in state 0.
   # Second action is more optimal in state 0.
   reward_means = np.array([
       [1., 2.],  
@@ -43,8 +43,12 @@ def verify_IS_behavior():
                                   reward_stds,
                                   behavior_policy)
   
-  two_state.run_vanilla_IS(evaluation_policy, behavior_policy, trajectories)
+  ordinary_IS_estimates, weighted_IS_estimates = two_state.run_vanilla_IS(
+      evaluation_policy, behavior_policy, trajectories)
   
+  # 1 * 0.25 + 2 * 0.75 = 1.75
+  print("Should be roughly equal to 1.75: ", np.mean(ordinary_IS_estimates))
+  print(np.mean(weighted_IS_estimates))
 
 if __name__ == "__main__":
   verify_IS_behavior()
