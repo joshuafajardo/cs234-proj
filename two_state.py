@@ -5,8 +5,11 @@ from trajectory_classes import *
 RNG = np.random.default_rng(234)
 
 
-# TODO: Implement if needed
-def calculate_true_value_function(policy, state_distribution, reward_means, reward_stds):
+def calculate_policy_value_rmse(estimated_policy_values, true_policy_value):
+  """
+  Given the estimated_policy_values generated for one particular policy,
+  and the true_policy_value of that policy, calculate the RMSE.
+  """
   pass
 
 
