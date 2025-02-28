@@ -5,7 +5,7 @@ from two_state import *
 from trajectory_classes import *
 
 
-NUM_DATASETS = 50  # Increasing this value will only increase accuracy.
+NUM_DATASETS = 50  # Increasing this value will improve RMSE estimate
 TRAJECTORIES_PER_DATASET = 1000
 DOCTOR_COST_PER_ANNOTATION = 20
 LLM_COST_PER_ANNOTATION = 1  # Keep this at 1
