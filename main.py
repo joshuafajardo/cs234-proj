@@ -5,7 +5,7 @@ from two_state import *
 from trajectory_classes import *
 
 
-NUM_DATASETS = 100  # Increasing this value will only increase accuracy.
+NUM_DATASETS = 50  # Increasing this value will only increase accuracy.
 TRAJECTORIES_PER_DATASET = 1000
 DOCTOR_COST_PER_ANNOTATION = 20
 LLM_COST_PER_ANNOTATION = 1  # Keep this at 1
@@ -64,7 +64,7 @@ def main():
         evaluation_policy, behavior_policy, factual_dataset))
 
   # Try out different budgeting strategies
-  all_budgets_per_dataset = [0, 100, 500, 1000, 2000]
+  all_budgets_per_dataset = [0, 100, 200, 300, 400, 500]
   doctor_percent_spends = [0, 10, 50, 90, 100]
   ISplus_estimates = {
       budget: {percent: [] for percent in doctor_percent_spends} \
@@ -127,8 +127,9 @@ def main():
              label=f"IS+ @ {doctor_percent}%.")
 
   plt.title("RMSEs vs Total Budget for IS+ with Various Doctor-Budget "
-            "Allocations (with IS baseline)")
-  plt.xlabel("Total Budget")
+            "Allocations (with IS baseline) in the Positive-Reward-Only "
+            "Scenario.")
+  plt.xlabel("Total Budget Per Dataset")
   plt.ylabel("RMSE")
   plt.legend()
 
