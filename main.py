@@ -1,30 +1,45 @@
 import numpy as np
 
-import two_state
+from two_state import *
 from trajectory_classes import *
 
 
-# TODO: Run IS without any annotations.
-# TODO: Run IS+ and DM+-IS in two scenarios:
-# - With *only* high quality annotations
-# - With *both* high and low quality annotations
+NUM_DATASETS = 100  # Increasing this value will only increase accuracy
+TRAJECTORIES_PER_DATASET = 1000
+ANNOTATION_BUDGET_PER_DATASET = 500
+DOCTOR_COST_PER_ANNOTATION = 20
+LLM_COST_PER_ANNOTATION = 1  # Keep this at 1
 
-
-# ==============================================================================
-# JF: Below is scratch code used to verify the behaviors of the functions in
-#     two_state.py.
-# ==============================================================================
-
-def verify_IS_behavior():
-  state_distribution = np.array([1, 0])  # Only ever start in state 0.
-  # Second action is more optimal in state 0.
-  reward_means = np.array([
+def main():
+  # Model
+  state_distribution = np.array([0.5, 0.5])
+  true_reward_means = np.array([
       [1., 2.],  
       [0., 0.],
   ])
-  reward_stds = np.array([
+  true_reward_stds = np.array([
       [0.5, 0.5],
       [0.5, 0.5],
+  ])
+
+  # Doctor Noise
+  doctor_bias = np.array([
+      [0.25],
+      [0.25],
+  ])
+  doctor_std = np.array([
+      [0.5],
+      [0.5],
+  ])
+
+  # LLM Noise
+  llm_bias = np.array([
+      [0.5],
+      [0.5],
+  ])
+  llm_std = np.array([
+      [0.25],
+      [0.25],
   ])
 
   # Create a scenario where the evaluation policy should perform better.
@@ -38,17 +53,31 @@ def verify_IS_behavior():
   ])
 
   # Only generate trajectories for the behavior policy
-  trajectories = two_state.generate_trajectories(state_distribution,
-                                  reward_means,
-                                  reward_stds,
-                                  behavior_policy)
+  IS_estimates = []
+  ISplus_estimates = []
+  for num_doctor_annotations_per_dataset in [5]:  # TODO: expand this
+    num_llm_annotations = ANNOTATION_BUDGET_PER_DATASET \
+        - num_doctor_annotations_per_dataset * DOCTOR_COST_PER_ANNOTATION
 
-  ordinary_IS_estimates, weighted_IS_estimates = two_state.run_vanilla_IS(
-      evaluation_policy, behavior_policy, trajectories)
-  
-  # 1 * 0.25 + 2 * 0.75 = 1.75
-  print("Should be roughly equal to 1.75: ", np.mean(ordinary_IS_estimates))
-  print(np.mean(weighted_IS_estimates))
+    for _ in range(NUM_DATASETS):
+      factual_dataset = generate_dataset_of_trajectories(
+          state_distribution, true_reward_means, true_reward_stds,
+          behavior_policy, num_runs=TRAJECTORIES_PER_DATASET)
+
+      IS_estimates.append(run_vanilla_IS(
+          evaluation_policy, behavior_policy, factual_dataset))
+      
+      doctor_annotations = generate_annotations(
+          factual_dataset, num_doctor_annotations_per_dataset,
+          true_reward_means + doctor_bias, true_reward_stds + doctor_std)
+      llm_annotations = generate_annotations(
+          factual_dataset, num_doctor_annotations_per_dataset,
+          true_reward_means + llm_bias, true_reward_stds + llm_std)
+
+      ISplus_estimates.append(run_ISplus(
+          evaluation_policy, behavior_policy, factual_dataset,
+          [doctor_annotations, doctor_bias]))
+    
 
 if __name__ == "__main__":
-  verify_IS_behavior()
+  main()
