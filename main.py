@@ -5,7 +5,7 @@ from two_state import *
 from trajectory_classes import *
 
 
-NUM_DATASETS = 50  # Increasing this value will improve RMSE estimate
+NUM_DATASETS = 20  # Increasing this value will improve RMSE estimate
 TRAJECTORIES_PER_DATASET = 1000
 DOCTOR_COST_PER_ANNOTATION = 20
 LLM_COST_PER_ANNOTATION = 1  # Keep this at 1
@@ -29,12 +29,12 @@ def main():
   #     [0.1],
   # ])
   doctor_bias = np.array([
-      [0],
-      [0],
+      [0., 0.],
+      [0., 0.],
   ])
   doctor_std = np.array([
-      [0.7],
-      [0.7],
+      [0.7, 0.7],
+      [0.7, 0.7],
   ])
 
   # LLM Noise
@@ -43,12 +43,12 @@ def main():
   #     [0.3],
   # ])
   llm_bias = np.array([
-      [0],
-      [0],
+      [0., 0.],
+      [0., 0.],
   ])
   llm_std = np.array([
-      [0.25],
-      [0.25],
+      [0.25, 0.25],
+      [0.25, 0.25],
   ])
 
   # Create a scenario where the evaluation policy should perform better.
