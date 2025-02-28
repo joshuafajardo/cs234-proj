@@ -23,19 +23,28 @@ def main():
   ])
 
   # Doctor Noise
+  # TODO: Uncomment this later
+  # doctor_bias = np.array([
+  #     [0.1],
+  #     [0.1],
+  # ])
   doctor_bias = np.array([
-      [0.1],
-      [0.1],
+      [0],
+      [0],
   ])
   doctor_std = np.array([
-      [0.6],
-      [0.6],
+      [0.7],
+      [0.7],
   ])
 
   # LLM Noise
+  # llm_bias = np.array([
+  #     [0.3],
+  #     [0.3],
+  # ])
   llm_bias = np.array([
-      [0.3],
-      [0.3],
+      [0],
+      [0],
   ])
   llm_std = np.array([
       [0.25],
@@ -94,12 +103,13 @@ def main():
         IS_estimates.append(run_vanilla_IS(
             evaluation_policy, behavior_policy, factual_dataset))
         
+        # Intentionally do not add in the true_reward_stds.
         doctor_annotations = generate_annotations(
             factual_dataset, num_doctor_annotations_per_dataset,
-            true_reward_means + doctor_bias, true_reward_stds + doctor_std)
+            true_reward_means + doctor_bias, doctor_std)
         llm_annotations = generate_annotations(
             factual_dataset, num_llm_annotations_per_dataset,
-            true_reward_means + llm_bias, true_reward_stds + llm_std)
+            true_reward_means + llm_bias, llm_std)
 
         ISplus_estimates[budget_per_dataset][doctor_percent_spend].append(
             run_ISplus(evaluation_policy, behavior_policy, factual_dataset,
