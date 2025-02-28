@@ -23,32 +23,23 @@ def main():
   ])
 
   # Doctor Noise
-  # TODO: Uncomment this later
-  # doctor_bias = np.array([
-  #     [0.1],
-  #     [0.1],
-  # ])
   doctor_bias = np.array([
       [0., 0.],
       [0., 0.],
   ])
   doctor_std = np.array([
-      [0.7, 0.7],
-      [0.7, 0.7],
+      [0.9, 0.9],
+      [0.9, 0.9],
   ])
 
   # LLM Noise
-  # llm_bias = np.array([
-  #     [0.3],
-  #     [0.3],
-  # ])
   llm_bias = np.array([
       [0., 0.],
       [0., 0.],
   ])
   llm_std = np.array([
-      [0.25, 0.25],
-      [0.25, 0.25],
+      [0.7, 0.7],
+      [0.7, 0.7],
   ])
 
   # Create a scenario where the evaluation policy should perform better.
