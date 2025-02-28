@@ -31,10 +31,10 @@ class Trajectory:
     Expands the rewards from shape (trajectory_len) to shape (num_actions,
     trajectory_len), where actions that were not taken have value nan.
     """
-    output = np.full((self.num_possible_actions, self.trajectory_len), np.nan)
+    output = np.full((self.trajectory_len, self.num_possible_actions), np.nan)
     # There's room for optimization down below, but it won't save much time.
     for timestep, _, action, reward in self:
-      output[action, timestep] = reward
+      output[timestep, action] = reward
     return output
 
   def unpack(self):
