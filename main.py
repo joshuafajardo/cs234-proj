@@ -6,7 +6,7 @@ from trajectory_classes import *
 
 NUM_DATASETS = 1  # Increasing this value will only increase accuracy. TODO increase this to 100
 TRAJECTORIES_PER_DATASET = 1000
-ANNOTATION_BUDGET_PER_DATASET = 0
+ANNOTATION_BUDGET_PER_DATASET = 500
 DOCTOR_COST_PER_ANNOTATION = 20
 LLM_COST_PER_ANNOTATION = 1  # Keep this at 1
 
@@ -24,18 +24,18 @@ def main():
 
   # Doctor Noise
   doctor_bias = np.array([
-      [0.25],
-      [0.25],
+      [0.1],
+      [0.1],
   ])
   doctor_std = np.array([
-      [0.5],
-      [0.5],
+      [0.6],
+      [0.6],
   ])
 
   # LLM Noise
   llm_bias = np.array([
-      [0.5],
-      [0.5],
+      [0.3],
+      [0.3],
   ])
   llm_std = np.array([
       [0.25],
