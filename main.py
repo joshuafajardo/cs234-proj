@@ -5,7 +5,7 @@ from two_state import *
 from trajectory_classes import *
 
 
-NUM_DATASETS = 1  # Increasing this value will only increase accuracy. TODO increase this to 100
+NUM_DATASETS = 100  # Increasing this value will only increase accuracy.
 TRAJECTORIES_PER_DATASET = 1000
 DOCTOR_COST_PER_ANNOTATION = 20
 LLM_COST_PER_ANNOTATION = 1  # Keep this at 1
@@ -105,21 +105,32 @@ def main():
             run_ISplus(evaluation_policy, behavior_policy, factual_dataset,
                        [doctor_annotations, llm_annotations]))
 
+  # Plotting
   true_evaluation_policy_value = calculate_true_policy_value(
       evaluation_policy, state_distribution, true_reward_means)
+
+  # IS
   IS_rmse = calculate_policy_value_rmse(IS_estimates,
                                         true_evaluation_policy_value)
-  ISplus_rmses = {percent: [] for percent in doctor_percent_spends}
+  plt.axhline(y=np.mean(IS_rmse), label="Ordinary IS")
 
+  # IS+
+  ISplus_rmses = {percent: [] for percent in doctor_percent_spends}
   for budget in all_budgets_per_dataset:
     for doctor_percent in doctor_percent_spends:
       ISplus_rmses[doctor_percent].append(calculate_policy_value_rmse(
           ISplus_estimates[budget][doctor_percent],
           true_evaluation_policy_value))
 
-  plt.axhline(y=np.mean(IS_estimates))
   for doctor_percent in doctor_percent_spends:
-    plt.plot(all_budgets_per_dataset, ISplus_rmses[doctor_percent])
+    plt.plot(all_budgets_per_dataset, ISplus_rmses[doctor_percent],
+             label=f"IS+ @ {doctor_percent}%.")
+
+  plt.title("RMSEs vs Total Budget for IS+ with Various Doctor-Budget "
+            "Allocations (with IS baseline)")
+  plt.xlabel("Total Budget")
+  plt.ylabel("RMSE")
+  plt.legend()
 
   plt.show()
     
