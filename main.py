@@ -42,7 +42,7 @@ def verify_IS_behavior():
                                   reward_means,
                                   reward_stds,
                                   behavior_policy)
-  
+
   ordinary_IS_estimates, weighted_IS_estimates = two_state.run_vanilla_IS(
       evaluation_policy, behavior_policy, trajectories)
   

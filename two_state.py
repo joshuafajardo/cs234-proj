@@ -10,7 +10,7 @@ def calculate_policy_value_rmse(estimated_policy_values, true_policy_value):
   Given the estimated_policy_values generated for one particular policy,
   and the true_policy_value of that policy, calculate the RMSE.
   """
-  pass
+  # TODO: Will need to call calculate_true_policy_value
 
 
 # TODO: Implement if needed
@@ -28,6 +28,9 @@ def generate_trajectories(
     reward_means: np.ndarray,
     reward_stds: np.ndarray,
     policy: np.ndarray,
+    # NOTE: In theory, bandits should always have only one timestep. In the
+    # original code, they provided some flexibility to having multiple
+    # timesteps, so we do the same in our implementation.
     trajectory_len: int = 1,
     num_runs: int = 1000,
 ):
@@ -73,14 +76,18 @@ def generate_annotations(
     counterfac_probs: np.ndarray,
     annotated_reward_means: np.ndarray,
     annotated_reward_stds: np.ndarray,
-):
+) -> list[np.ndarray]:
   """
   Args:
-    trajectories: A list of Trajectory objects.
+    trajectories: A list of batch_size equal-length Trajectories.
     counterfac_probs: Shape (num_states, num_actions). Named `Pc' in the
         original code.
     annotated_reward_means: Shape (num_states, num_actions)
     annotated_reward_stds: Shape (num_states, num_actions)
+
+  Return Value:
+    all_annotations: A list of counterfactual annotations, one for each
+        trajectory. Effective shape (batch_size, num_actions, trajectory_length)
 
   If bias and/or variance is to be added to the annotations, it should be done
   *before* the reward_[means|stds] are passed to this function.
@@ -103,18 +110,17 @@ def generate_annotations(
 
     # Determine which timesteps should receive an annotation
     curr_counterfac_probs = np.array(
-        [counterfac_probs[state, action] for state, action, _ in trajectory])
+        [counterfac_probs[state, action] for _, state, action, _ in trajectory])
     counterfac_flags = RNG.random(num_timesteps) < curr_counterfac_probs
 
-    # Generate the annotations for all timesteps (regardless of flag)
-    counterfac_rewards = []
-    for state, action, _ in trajectories:
-      counterfac_rewards.append(RNG.normal(
-          annotated_reward_means[state, 1 - action],
-          annotated_reward_stds[state, 1 - action]))
+    # Generate the annotations for all flagged timesteps
+    counterfac_rewards = np.full((2, num_timesteps), np.nan)
+    for timestep, state, action, _ in trajectory:
+      if counterfac_flags[timestep]:
+        counterfac_rewards[1 - action, timestep] = RNG.normal(
+            annotated_reward_means[state, 1 - action],
+            annotated_reward_stds[state, 1 - action])
 
-    # Use the flags to mask timesteps that should receive no annotations.
-    counterfac_rewards = np.where(counterfac_flags, counterfac_rewards, np.nan)
     all_annotations.append(counterfac_rewards)
 
   return all_annotations
@@ -161,8 +167,36 @@ def run_vanilla_IS(
 # This is the algorithm proposed by Tang & Wiens. Denoted as C-IS in their
 # original paper, and as IS+ in Aishwarya's paper.
 # STATUS: Needs implementation
-def run_ISplus():
-  pass
+def run_ISplus(
+    trajectories: list[Trajectory],
+    annotations: list[list[np.ndarray]]
+) -> np.ndarray:
+  """
+  This is a modified version of C-IS from Tang & Wiens (denoted IS+ by Mandyam
+  et. al) that allows for multiple sets of annotations per trajectory.
+
+  Args:
+    trajectories: A list of batch_size Trajectories.
+    annotations: Effective shape: (batch_size, num_annotation_sets, num_actions,
+        trajectory_length)
+  """
+  # TODO: Remove the shortcut where we equally weight all annotations + factual
+  # events.
+
+  # Our annotations have np.nan where counterfactual observations are not
+  # observed. Mimic this structure for the true rewards, and stack the rewards.
+  stacked_nan_expanded_trajectories = np.array(
+      [trajectory.create_nan_expanded_rewards() for trajectory in trajectories])
+  stacked_nan_expanded_trajectories = np.expand_dims(
+      stacked_nan_expanded_trajectories, 1)
+
+  # Combine the rewards and annotations into one np.ndarray.
+  # Shape: (batch_size, 1 + num_annotation_sets, num_actions, trajectory_length)
+  combined_trajectories_and_annotations = np.concatenate(
+      (stacked_nan_expanded_trajectories, np.array(annotations)),
+      axis=1)
+
+  
 
 
 # Performed the best in Aishwarya's CANDOR paper
