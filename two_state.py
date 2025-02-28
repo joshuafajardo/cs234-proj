@@ -184,8 +184,8 @@ def run_ISplus(
   et. al) that allows for multiple sets of annotations per trajectory.
 
   Args:
-    trajectories: A list of batch_size Trajectories.
-    annotations: Effective shape: (batch_size, num_annotation_sets, num_actions,
+    dataset: A list of batch_size Trajectories.
+    annotations: Effective shape: (num_annotation_sets, batch_size, num_actions,
         trajectory_len)
 
   """
@@ -197,13 +197,14 @@ def run_ISplus(
   stacked_nan_expanded_factual_rewards = np.array(
       [trajectory.create_nan_expanded_rewards() for trajectory in dataset])
   stacked_nan_expanded_factual_rewards = np.expand_dims(
-      stacked_nan_expanded_factual_rewards, 1)
+      stacked_nan_expanded_factual_rewards, 0)
 
   # Combine the rewards and annotations into one np.ndarray.
-  # Shape: (batch_size, 1 + num_annotation_sets, num_actions, trajectory_len)
+  # Shape: (1 + num_annotation_sets, batch_size, num_actions, trajectory_len)
   combined_factual_rewards_and_annotations = np.concatenate(
       (stacked_nan_expanded_factual_rewards, np.array(annotations)),
-      axis=1)
+      axis=0)
+  print(combined_factual_rewards_and_annotations.shape)
 
   ordinary_ISplus_value_estimates = []
 
@@ -214,10 +215,11 @@ def run_ISplus(
     # This is probably inefficient, but it doesn't matter for 2-state.
     inv_prop_scores = policy_e[trajectory.states] / policy_b[trajectory.states]
     # (trajectory_len, num_actions) --> (1, 1, trajectory_len, num_actions)
+    print(inv_prop_scores.shape)
     inv_prop_scores = inv_prop_scores[np.newaxis, np.newaxis, :]
 
     ordinary_ISplus_value_estimates.append(
-      np.mean(combined_factual_rewards_and_annotations * inv_prop_scores))
+      np.nanmean(combined_factual_rewards_and_annotations * inv_prop_scores))
   
   return np.mean(ordinary_ISplus_value_estimates)
 
