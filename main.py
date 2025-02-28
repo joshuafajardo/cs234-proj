@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from two_state import *
 from trajectory_classes import *
@@ -6,7 +7,6 @@ from trajectory_classes import *
 
 NUM_DATASETS = 1  # Increasing this value will only increase accuracy. TODO increase this to 100
 TRAJECTORIES_PER_DATASET = 1000
-ANNOTATION_BUDGET_PER_DATASET = 500
 DOCTOR_COST_PER_ANNOTATION = 20
 LLM_COST_PER_ANNOTATION = 1  # Keep this at 1
 
@@ -54,46 +54,74 @@ def main():
 
   # Only generate trajectories for the behavior policy
   IS_estimates = []
-  ISplus_estimates = []
-  # for doctor_percent_spend in [0, 10, 50, 90, 100]:
-  for doctor_percent_spend in [50]:
-    # Calculate budgeted annotations
-    doctor_spend = int((doctor_percent_spend / 100) \
-        * ANNOTATION_BUDGET_PER_DATASET \
-        // DOCTOR_COST_PER_ANNOTATION \
-        * DOCTOR_COST_PER_ANNOTATION)
-    llm_spend = int((ANNOTATION_BUDGET_PER_DATASET - doctor_spend) \
-        // LLM_COST_PER_ANNOTATION \
-        * LLM_COST_PER_ANNOTATION)
+  # Generate a value for each dataset
+  for _ in range(NUM_DATASETS):
+    factual_dataset = generate_dataset_of_trajectories(
+        state_distribution, true_reward_means, true_reward_stds,
+        behavior_policy, num_trajectories=TRAJECTORIES_PER_DATASET)
 
-    num_doctor_annotations_per_dataset = doctor_spend \
-        // DOCTOR_COST_PER_ANNOTATION
-    print(num_doctor_annotations_per_dataset)
-    num_llm_annotations_per_dataset = llm_spend // LLM_COST_PER_ANNOTATION
-    print(num_llm_annotations_per_dataset)
+    IS_estimates.append(run_vanilla_IS(
+        evaluation_policy, behavior_policy, factual_dataset))
 
-    # Generate a value for each dataset
-    for _ in range(NUM_DATASETS):
-      factual_dataset = generate_dataset_of_trajectories(
-          state_distribution, true_reward_means, true_reward_stds,
-          behavior_policy, num_trajectories=TRAJECTORIES_PER_DATASET)
+  # Try out different budgeting strategies
+  all_budgets_per_dataset = [0, 100, 500, 1000, 2000]
+  doctor_percent_spends = [0, 10, 50, 90, 100]
+  ISplus_estimates = {
+      budget: {percent: [] for percent in doctor_percent_spends} \
+      for budget in all_budgets_per_dataset}
 
-      IS_estimates.append(run_vanilla_IS(
-          evaluation_policy, behavior_policy, factual_dataset))
-      
-      doctor_annotations = generate_annotations(
-          factual_dataset, num_doctor_annotations_per_dataset,
-          true_reward_means + doctor_bias, true_reward_stds + doctor_std)
-      llm_annotations = generate_annotations(
-          factual_dataset, num_llm_annotations_per_dataset,
-          true_reward_means + llm_bias, true_reward_stds + llm_std)
+  for budget_per_dataset in all_budgets_per_dataset:
+    for doctor_percent_spend in doctor_percent_spends:
+      # Calculate budgeted annotations
+      doctor_spend = int((doctor_percent_spend / 100) \
+          * budget_per_dataset \
+          // DOCTOR_COST_PER_ANNOTATION \
+          * DOCTOR_COST_PER_ANNOTATION)
+      llm_spend = int((budget_per_dataset - doctor_spend) \
+          // LLM_COST_PER_ANNOTATION \
+          * LLM_COST_PER_ANNOTATION)
 
-      ISplus_estimates.append(run_ISplus(
-          evaluation_policy, behavior_policy, factual_dataset,
-          [doctor_annotations, llm_annotations]))
-    
-    print("IS: ", np.mean(IS_estimates))
-    print("IS+: ", np.mean(ISplus_estimates))
+      num_doctor_annotations_per_dataset = doctor_spend \
+          // DOCTOR_COST_PER_ANNOTATION
+      num_llm_annotations_per_dataset = llm_spend // LLM_COST_PER_ANNOTATION
+
+      # Generate a value for each dataset
+      for _ in range(NUM_DATASETS):
+        factual_dataset = generate_dataset_of_trajectories(
+            state_distribution, true_reward_means, true_reward_stds,
+            behavior_policy, num_trajectories=TRAJECTORIES_PER_DATASET)
+
+        IS_estimates.append(run_vanilla_IS(
+            evaluation_policy, behavior_policy, factual_dataset))
+        
+        doctor_annotations = generate_annotations(
+            factual_dataset, num_doctor_annotations_per_dataset,
+            true_reward_means + doctor_bias, true_reward_stds + doctor_std)
+        llm_annotations = generate_annotations(
+            factual_dataset, num_llm_annotations_per_dataset,
+            true_reward_means + llm_bias, true_reward_stds + llm_std)
+
+        ISplus_estimates[budget_per_dataset][doctor_percent_spend].append(
+            run_ISplus(evaluation_policy, behavior_policy, factual_dataset,
+                       [doctor_annotations, llm_annotations]))
+
+  true_evaluation_policy_value = calculate_true_policy_value(
+      evaluation_policy, state_distribution, true_reward_means)
+  IS_rmse = calculate_policy_value_rmse(IS_estimates,
+                                        true_evaluation_policy_value)
+  ISplus_rmses = {percent: [] for percent in doctor_percent_spends}
+
+  for budget in all_budgets_per_dataset:
+    for doctor_percent in doctor_percent_spends:
+      ISplus_rmses[doctor_percent].append(calculate_policy_value_rmse(
+          ISplus_estimates[budget][doctor_percent],
+          true_evaluation_policy_value))
+
+  plt.axhline(y=np.mean(IS_estimates))
+  for doctor_percent in doctor_percent_spends:
+    plt.plot(all_budgets_per_dataset, ISplus_rmses[doctor_percent])
+
+  plt.show()
     
 
 if __name__ == "__main__":

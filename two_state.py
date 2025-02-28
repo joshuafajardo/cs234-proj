@@ -5,7 +5,10 @@ from trajectory_classes import *
 RNG = np.random.default_rng(234)
 
 
-def calculate_policy_value_rmse(estimated_policy_values, true_policy_value):
+def calculate_policy_value_rmse(
+      estimated_policy_values: np.ndarray,
+      true_policy_value: int,
+) -> int:
   """
   Given the estimated_policy_values generated for one particular policy,
   and the true_policy_value of that policy, calculate the RMSE.
@@ -13,7 +16,7 @@ def calculate_policy_value_rmse(estimated_policy_values, true_policy_value):
   One policy value should be estimated per dataset. Each dataset should have
   some number of trajectories.
   """
-  # TODO: Will need to call calculate_true_policy_value
+  return np.sqrt(np.mean((estimated_policy_values - true_policy_value) ** 2))
 
 
 # TODO: Implement if needed
@@ -21,8 +24,10 @@ def calculate_policy_value_rmse(estimated_policy_values, true_policy_value):
 # we have this second function here. This calculates a single value for the
 # policy, while the function above gives a value for each state for the given
 # policy.
-def calculate_true_policy_value(policy, state_distribution, reward_means, reward_stds):
-  pass
+def calculate_true_policy_value(policy, state_distribution, reward_means):
+  # TODO: Note that a shortcurt here was used that uses many our problem's
+  # assumptions
+  return np.sum(state_distribution[0] * policy[0] * reward_means[0])
 
 
 # STATUS: Lightly tested
@@ -112,8 +117,10 @@ def generate_annotations(
 
   # If we ever venture outside of the 2-state problem, we'll need to factor
   # in the number of actions.
-  indices_to_annotate = set(RNG.choice(num_timesteps * len(factual_dataset),
-                                  size=num_annotations, replace=False))
+  max_possible_annotations = num_timesteps * len(factual_dataset)
+  num_annotations = np.minimum(num_annotations, max_possible_annotations)
+  indices_to_annotate = set(
+      RNG.choice(max_possible_annotations, size=num_annotations, replace=False))
 
   total_timesteps_processed = 0
   for trajectory in factual_dataset:
@@ -204,7 +211,6 @@ def run_ISplus(
   combined_factual_rewards_and_annotations = np.concatenate(
       (stacked_nan_expanded_factual_rewards, np.array(annotations)),
       axis=0)
-  print(combined_factual_rewards_and_annotations.shape)
 
   ordinary_ISplus_value_estimates = []
 
@@ -215,7 +221,6 @@ def run_ISplus(
     # This is probably inefficient, but it doesn't matter for 2-state.
     inv_prop_scores = policy_e[trajectory.states] / policy_b[trajectory.states]
     # (trajectory_len, num_actions) --> (1, 1, trajectory_len, num_actions)
-    print(inv_prop_scores.shape)
     inv_prop_scores = inv_prop_scores[np.newaxis, np.newaxis, :]
 
     ordinary_ISplus_value_estimates.append(
