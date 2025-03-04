@@ -25,9 +25,7 @@ def calculate_policy_value_rmse(
 # policy, while the function above gives a value for each state for the given
 # policy.
 def calculate_true_policy_value(policy, state_distribution, reward_means):
-  # TODO: Note that a shortcurt here was used that uses many our problem's
-  # assumptions
-  return np.sum(state_distribution[0] * policy[0] * reward_means[0])
+  return np.sum(state_distribution @ (policy * reward_means))
 
 
 # STATUS: Lightly tested
@@ -138,6 +136,23 @@ def generate_annotations(
   return all_annotations
 
 
+def create_combined_factual_rewards_and_annotations(
+    factual_dataset: list[Trajectory],
+    annotations: list[list[np.ndarray]],
+):
+  # Our annotations have np.nan where counterfactual observations are not
+  # observed. Mimic this structure for the true rewards, and stack the rewards.
+  stacked_nan_expanded_factual_rewards = np.array(
+      [traj.create_nan_expanded_rewards() for traj in factual_dataset])
+  stacked_nan_expanded_factual_rewards = np.expand_dims(
+      stacked_nan_expanded_factual_rewards, 0)
+
+  # Combine the rewards and annotations into one np.ndarray.
+  # Shape: (1 + num_annotation_sets, batch_size, trajectory_len, num_actions)
+  return np.concatenate(
+      (stacked_nan_expanded_factual_rewards, np.array(annotations)),
+      axis=0)
+
 # STATUS: Needs testing
 def run_vanilla_IS(
     policy_e: np.ndarray,
@@ -196,26 +211,11 @@ def run_ISplus(
         trajectory_len, num_actions)
 
   """
-  # TODO: Remove the shortcut where we equally weight all annotations + factual
-  # events.
-
-  # Our annotations have np.nan where counterfactual observations are not
-  # observed. Mimic this structure for the true rewards, and stack the rewards.
-  stacked_nan_expanded_factual_rewards = np.array(
-      [trajectory.create_nan_expanded_rewards() for trajectory in dataset])
-  stacked_nan_expanded_factual_rewards = np.expand_dims(
-      stacked_nan_expanded_factual_rewards, 0)
-
-  # Combine the rewards and annotations into one np.ndarray.
-  # Shape: (1 + num_annotation_sets, batch_size, trajectory_len, num_actions)
-  combined_factual_rewards_and_annotations = np.concatenate(
-      (stacked_nan_expanded_factual_rewards, np.array(annotations)),
-      axis=0)
+  combined_factual_rewards_and_annotations = (
+      create_combined_factual_rewards_and_annotations(dataset, annotations))
 
   ordinary_ISplus_value_estimates = []
-
   for trajectory in dataset:
-
     # Calculate the Inverse Propensity Scores (`rho' in the literature) for ALL
     # possible actions, given each observed state.
     # This is probably inefficient, but it doesn't matter for 2-state.
@@ -223,6 +223,8 @@ def run_ISplus(
     # (trajectory_len, num_actions) --> (1, 1, trajectory_len, num_actions)
     inv_prop_scores = inv_prop_scores[np.newaxis, np.newaxis, :]
 
+    # TODO: We may want to allow for a weighted mean here between factual
+    # rewards and CFAs.
     ordinary_ISplus_value_estimates.append(
       np.nanmean(combined_factual_rewards_and_annotations * inv_prop_scores))
   
@@ -231,8 +233,19 @@ def run_ISplus(
 
 # Performed the best in Aishwarya's CANDOR paper
 # STATUS: Needs implementation
-def run_DMplus_IS():
-  pass
+def run_DMplus_IS(
+    policy_e: np.ndarray,
+    policy_b: np.ndarray,
+    dataset: list[Trajectory],
+    annotations: list[list[np.ndarray]],
+):
+  # Estimate one reward function given all trajectories
+  estimated_reward_function = 0  # TODO
+
+  for trajectory in dataset:
+    inv_prop_scores = policy_e[trajectory.states] / policy_b[trajectory.states]
+    # (trajectory_len, num_actions) --> (1, 1, trajectory_len, num_actions)
+    inv_prop_scores = inv_prop_scores[np.newaxis, np.newaxis, :]
 
 
 # TODO: We may come up with a new algorithm here for evaluating a policy. If
