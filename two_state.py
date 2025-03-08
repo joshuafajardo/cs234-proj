@@ -136,7 +136,37 @@ def generate_annotations(
   return np.array(all_annotations)
 
 
-def combine_trajectory_with_annotations(
+def combine_dataset_of_trajectories_with_annotations(
+    factual_dataset: list[Trajectory],
+    annotations: np.ndarray,
+) -> np.ndarray:
+  """
+  This function exists separately from
+  combine_single_trajectory_with_annotations for efficiency reasons.
+
+  Args:
+    factual_dataset: A list of batch_size Trajectories.
+    annotations: Effective shape: (num_annotation_sets, batch_size,
+        trajectory_len, num_actions)
+  
+  Output:
+    combined_factual_rewards_and_annotations: np.ndarray of shape
+        (1 + num_annotation_sets, batch_size, trajectory_len, num_actions).
+        np.nan will be found wherever counterfactual observations are not
+        observed.
+  """
+  stacked_nan_expanded_factual_rewards = np.array(
+      [traj.create_nan_expanded_rewards() for traj in factual_dataset])
+  stacked_nan_expanded_factual_rewards = np.expand_dims(
+      stacked_nan_expanded_factual_rewards, 0)
+
+  # Combine the rewards and annotations into one np.ndarray.
+  return np.concatenate(
+      (stacked_nan_expanded_factual_rewards, np.array(annotations)),
+      axis=0)
+
+
+def combine_single_trajectory_with_annotations(
     trajectory: Trajectory,
     annotations: np.ndarray,
 ) -> np.ndarray:
@@ -151,8 +181,6 @@ def combine_trajectory_with_annotations(
         (1 + num_annotation_sets, trajectory_len, num_actions). np.nan will be
         found wherever counterfactual observations are not observed.
   """
-  # Our annotations have np.nan where counterfactual observations are not
-  # observed. Mimic this structure for the true rewards.
   return np.concatenate(
       (np.expand_dims(trajectory.create_nan_expanded_rewards(), 0),
           annotations),
@@ -235,8 +263,9 @@ def run_ISplus(
     inv_prop_scores = inv_prop_scores[np.newaxis, :]
 
     # Shape (1 + num_annotation_sets, trajectory_len, num_actions)
-    combined_trajectory_and_annotations = combine_trajectory_with_annotations(
-        trajectory, annotations_array[:, trajectory_num, :, :])
+    combined_trajectory_and_annotations = \
+        combine_single_trajectory_with_annotations(
+              trajectory, annotations_array[:, trajectory_num, :, :])
     # TODO: We may want to allow for a weighted mean here between factual
     # rewards and CFAs.
     ordinary_ISplus_value_estimates.append(
@@ -251,11 +280,11 @@ def run_DMplus_IS(
     policy_e: np.ndarray,
     policy_b: np.ndarray,
     dataset: list[Trajectory],
-    annotations: list[list[np.ndarray]],
+    annotations: list[np.ndarray],
 ):
   # Shape: (1 + num_annotation_sets, batch_size, trajectory_len, num_actions)
-  combined_factual_rewards_and_annotations = (
-      create_combined_factual_rewards_and_annotations(dataset, annotations))
+  combined_factual_rewards_and_annotations = \
+      combine_dataset_of_trajectories_with_annotations(dataset, annotations)
 
   # Shape: (batch_size, trajectory_len)
   combined_states = create_combined_states(dataset)
@@ -274,7 +303,7 @@ def run_DMplus_IS(
     # having any non-nan values)
     estimated_reward_func[state] = np.nanmean(
         state_mask * combined_factual_rewards_and_annotations,
-        axis=3)  # One value for each action
+        axis=(0, 1, 2))  # One value for each action
 
   value_estimates = []
   for trajectory in dataset:
@@ -293,7 +322,5 @@ def run_DMplus_IS(
     value_estimates.append(np.mean(
         estimated_policy_e_rewards \
         + inv_prop_scores * (factual_rewards - estimated_factual_rewards)))
-
-# TODO: We may come up with a new algorithm here for evaluating a policy. If
-# that is the case, then we can treat the above evaluation algorithms as
-# baselines.
+  
+  return np.mean(value_estimates)

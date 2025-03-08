@@ -69,6 +69,9 @@ def main():
   ISplus_estimates = {
       budget: {percent: [] for percent in doctor_percent_spends} \
       for budget in all_budgets_per_dataset}
+  DMplus_IS_estimates = {
+      budget: {percent: [] for percent in doctor_percent_spends} \
+      for budget in all_budgets_per_dataset}
 
   for budget_per_dataset in all_budgets_per_dataset:
     for doctor_percent_spend in doctor_percent_spends:
@@ -105,6 +108,10 @@ def main():
         ISplus_estimates[budget_per_dataset][doctor_percent_spend].append(
             run_ISplus(evaluation_policy, behavior_policy, factual_dataset,
                        [doctor_annotations, llm_annotations]))
+        DMplus_IS_estimates[budget_per_dataset][doctor_percent_spend].append(
+            run_DMplus_IS(evaluation_policy, behavior_policy, factual_dataset,
+                       [doctor_annotations, llm_annotations]))
+          
 
   # Plotting
   true_evaluation_policy_value = calculate_true_policy_value(
@@ -123,9 +130,19 @@ def main():
           ISplus_estimates[budget][doctor_percent],
           true_evaluation_policy_value))
 
+  # DM+ - IS
+  DMplus_IS_rmses = {percent: [] for percent in doctor_percent_spends}
+  for budget in all_budgets_per_dataset:
+    for doctor_percent in doctor_percent_spends:
+      DMplus_IS_rmses[doctor_percent].append(calculate_policy_value_rmse(
+          DMplus_IS_estimates[budget][doctor_percent],
+          true_evaluation_policy_value))
+
   for doctor_percent in doctor_percent_spends:
     plt.plot(all_budgets_per_dataset, ISplus_rmses[doctor_percent],
              label=f"IS+ @ {doctor_percent}%.")
+    plt.plot(all_budgets_per_dataset, DMplus_IS_rmses[doctor_percent],
+             label=f"DM+-IS @ {doctor_percent}%.")
 
   plt.title("RMSEs vs Total Budget for IS+ with Various Doctor-Budget "
             "Allocations (with IS baseline) in the Positive-Reward-Only "
