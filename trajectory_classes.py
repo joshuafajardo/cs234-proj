@@ -25,7 +25,6 @@ class Trajectory:
     self.num_possible_states = num_possible_states
     self.num_possible_actions = num_possible_actions
 
-  # STATUS: Lightly tested
   def create_nan_expanded_rewards(self):
     """
     Expands the rewards from shape (trajectory_len) to shape (num_actions,
