@@ -139,7 +139,19 @@ def generate_annotations(
 def create_combined_factual_rewards_and_annotations(
     factual_dataset: list[Trajectory],
     annotations: list[list[np.ndarray]],
-):
+) -> np.ndarray:
+  """
+  Args:
+    factual_dataset: A list of batch_size Trajectories.
+    annotations: Effective shape: (num_annotation_sets, batch_size,
+        trajectory_len, num_actions)
+  
+  Output:
+    combined_factual_rewards_and_annotations: np.ndarray of shape
+        (1 + num_annotation_sets, batch_size, trajectory_len, num_actions).
+        np.nan will be found wherever counterfactual observations are not
+        observed.
+  """
   # Our annotations have np.nan where counterfactual observations are not
   # observed. Mimic this structure for the true rewards, and stack the rewards.
   stacked_nan_expanded_factual_rewards = np.array(
@@ -148,10 +160,19 @@ def create_combined_factual_rewards_and_annotations(
       stacked_nan_expanded_factual_rewards, 0)
 
   # Combine the rewards and annotations into one np.ndarray.
-  # Shape: (1 + num_annotation_sets, batch_size, trajectory_len, num_actions)
   return np.concatenate(
       (stacked_nan_expanded_factual_rewards, np.array(annotations)),
       axis=0)
+
+
+def create_combined_states(
+    factual_dataset: list[Trajectory]
+) -> np.ndarray:
+  """
+  Output: Shape (batch_size, trajectory_len)
+  """
+  return np.stack([trajectory.states for trajectory in factual_dataset])
+
 
 # STATUS: Needs testing
 def run_vanilla_IS(
@@ -174,7 +195,6 @@ def run_vanilla_IS(
   https://github.com/MLD3/CounterfactualAnnot-SemiOPE/blob/main/synthetic/bandit_compare-2state.ipynb
   """
   ordinary_IS_value_estimates = []
-  weighted_IS_value_estimates = []
   
   for trajectory in dataset:
     states, actions, rewards = trajectory.unpack()
@@ -239,14 +259,46 @@ def run_DMplus_IS(
     dataset: list[Trajectory],
     annotations: list[list[np.ndarray]],
 ):
-  # Estimate one reward function given all trajectories
-  estimated_reward_function = 0  # TODO
+  # Shape: (1 + num_annotation_sets, batch_size, trajectory_len, num_actions)
+  combined_factual_rewards_and_annotations = (
+      create_combined_factual_rewards_and_annotations(dataset, annotations))
 
+  # Shape: (batch_size, trajectory_len)
+  combined_states = create_combined_states(dataset)
+  # Shape: (1, batch_size, trajectory_len, 1)
+  combined_states = np.expand_dims(combined_states, (0, 3))
+
+  # Estimate one reward function given all trajectories
+  num_states = dataset[0].num_possible_states
+  num_actions = dataset[0].num_possible_actions
+  estimated_reward_func = np.zeros((num_states, num_actions))
+  for state in range(num_states):
+    # TODO: this may not be the cleanest
+    state_mask = np.where(combined_states == state, 1, np.nan)
+
+    # (May be a potential source of error later, if trying to nanmean without
+    # having any non-nan values)
+    estimated_reward_func[state] = np.nanmean(
+        state_mask * combined_factual_rewards_and_annotations,
+        axis=3)  # One value for each action
+
+  value_estimates = []
   for trajectory in dataset:
-    inv_prop_scores = policy_e[trajectory.states] / policy_b[trajectory.states]
+    factual_states, factual_actions, factual_rewards = trajectory.unpack()
+
+    inv_prop_scores = policy_e[factual_states] / policy_b[factual_states]
     # (trajectory_len, num_actions) --> (1, 1, trajectory_len, num_actions)
     inv_prop_scores = inv_prop_scores[np.newaxis, np.newaxis, :]
 
+    estimated_policy_e_rewards = np.sum(
+        estimated_reward_func[factual_states] * policy_e[factual_states],
+        axis=1)
+    estimated_factual_rewards = estimated_reward_func[factual_states,
+                                                      factual_actions]
+
+    value_estimates.append(np.mean(
+        estimated_policy_e_rewards \
+        + inv_prop_scores * (factual_rewards - estimated_factual_rewards)))
 
 # TODO: We may come up with a new algorithm here for evaluating a policy. If
 # that is the case, then we can treat the above evaluation algorithms as
