@@ -1,18 +1,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from two_state import *
 from trajectory_classes import *
 
 
-NUM_DATASETS = 20  # Increasing this value will improve RMSE estimate
-TRAJECTORIES_PER_DATASET = 1000
+NUM_DATASETS = 2000  # Increasing this value will improve RMSE estimate
+TRAJECTORIES_PER_DATASET = 50
 DOCTOR_COST_PER_ANNOTATION = 20
 LLM_COST_PER_ANNOTATION = 1  # Keep this at 1
 
 def main():
   # Model
-  state_distribution = np.array([1, 0])
+  state_distribution = np.array([0.5, 0.5])
   true_reward_means = np.array([
       [1., 2.],  
       [0., 0.],
@@ -73,7 +74,7 @@ def main():
       budget: {percent: [] for percent in doctor_percent_spends} \
       for budget in all_budgets_per_dataset}
 
-  for budget_per_dataset in all_budgets_per_dataset:
+  for budget_per_dataset in tqdm(all_budgets_per_dataset):
     for doctor_percent_spend in doctor_percent_spends:
       # Calculate budgeted annotations
       doctor_spend = int((doctor_percent_spend / 100) \

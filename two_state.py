@@ -2,7 +2,7 @@ import numpy as np
 
 from trajectory_classes import *
 
-RNG = np.random.default_rng(234)
+RNG = np.random.default_rng(123)
 
 
 def calculate_policy_value_rmse(
@@ -296,11 +296,13 @@ def run_DMplus_IS(
   num_actions = dataset[0].num_possible_actions
   estimated_reward_func = np.zeros((num_states, num_actions))
   for state in range(num_states):
-    # TODO: this may not be the cleanest
     state_mask = np.where(combined_states == state, 1, np.nan)
 
-    # (May be a potential source of error later, if trying to nanmean without
-    # having any non-nan values)
+    # May be a potential source of error later, if trying to nanmean without
+    # having any non-nan values. This is especially true if a particular state
+    # has 0 or low probability of appearing.
+    if not np.any(~np.isnan(state_mask)):
+      print(f"Warning: state_mask for state {state} has no non-nan values.")
     estimated_reward_func[state] = np.nanmean(
         state_mask * combined_factual_rewards_and_annotations,
         axis=(0, 1, 2))  # One value for each action
