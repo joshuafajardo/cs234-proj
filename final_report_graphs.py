@@ -5,7 +5,6 @@ from tqdm import tqdm
 from two_state import *
 from trajectory_classes import *
 
-# Constants based on your teammate's code
 NUM_DATASETS = 10000  # Large number for better RMSE estimate
 TRAJECTORIES_PER_DATASET = 50
 
@@ -17,7 +16,6 @@ def generate_requested_graphs():
     3. RMSE vs. cost ratio (budget = 20)
     4. RMSE vs. cost ratio (budget = 40)
     """
-    # Environment parameters matching your teammate's code
     state_distribution = np.array([0.5, 0.5])
     true_reward_means = np.array([
         [1., 1.5],
@@ -36,7 +34,6 @@ def generate_requested_graphs():
         [0.5, 0.5],
     ])
     
-    # Annotation parameters matching your teammate's code
     doctor_bias = np.array([
         [0.15, 0.15],
         [0.15, 0.15],
@@ -215,8 +212,7 @@ def rmse_vs_cost_ratio(cost_ratios, expert_allocations, fixed_budget,
         expert_cost = 0.01
         llm_cost = expert_cost / ratio
         
-        # We'll generate datasets and process all allocations for each dataset
-        # to reduce computation time
+        
         ISplus_estimates = {allocation: [] for allocation in expert_allocations}
         DMplus_IS_estimates = {allocation: [] for allocation in expert_allocations}
         
@@ -332,7 +328,6 @@ def plot_results(results, x_values, expert_allocations, baseline_IS_rmse,
                  color=colors[i], label=f'{allocation}%')
     
     # For DM+-IS, we'll use the 0% budget allocation at budget 0 as baseline
-    # This replicates your teammate's approach
     if 0 in expert_allocations and len(x_values) > 0:
         dmis_baseline = results['DMplus_IS'][0][0] if x_values[0] == 0 else None
         if dmis_baseline:
