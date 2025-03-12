@@ -5,6 +5,10 @@ from tqdm import tqdm
 from two_state import *
 from trajectory_classes import *
 
+'''
+DESCRIPTION: Runs important sampling (IS, IS+, DM+IS) with preset parameters
+Generates plots and results for the given environment setup. 
+'''
 
 NUM_DATASETS = 2000  # Increasing this value will improve RMSE estimate
 TRAJECTORIES_PER_DATASET = 50

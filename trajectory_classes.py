@@ -1,5 +1,8 @@
 import numpy as np
 
+'''
+DESCRIPTION: Defines data structures for handlig trajectories and annotations. 
+'''
 
 class AnnotatedTrajectory:
   pass  # TODO
