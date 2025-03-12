@@ -5,7 +5,7 @@ from tqdm import tqdm
 from two_state import *
 from trajectory_classes import *
 
-NUM_DATASETS = 10000  # Large number for better RMSE estimate
+NUM_DATASETS = 1000  # Large number for better RMSE estimate
 TRAJECTORIES_PER_DATASET = 50
 
 def generate_requested_graphs():
@@ -56,17 +56,22 @@ def generate_requested_graphs():
         evaluation_policy, state_distribution, true_reward_means)
     
     # Common parameters
-    budgets = [10, 20, 30, 40, 50]
+    budgets = [0, 10, 20, 30, 40, 50]
     cost_ratios = [10, 20, 30, 40, 50]
     expert_allocations = [0, 20, 40, 60, 80, 100]  # percentages
+
+    # Pre-generate the factual datasets, and pass them everywhere
+    factual_datasets = []
+    for _ in range(NUM_DATASETS):
+        factual_datasets.append(generate_dataset_of_trajectories(
+            state_distribution, true_reward_means, true_reward_stds,
+            behavior_policy, num_trajectories=TRAJECTORIES_PER_DATASET))
+
     
     # Get baseline IS estimate (we'll only need to do this once)
     print("\nGenerating baseline IS estimates...")
     IS_estimates = []
-    for _ in tqdm(range(NUM_DATASETS)):
-        factual_dataset = generate_dataset_of_trajectories(
-            state_distribution, true_reward_means, true_reward_stds,
-            behavior_policy, num_trajectories=TRAJECTORIES_PER_DATASET)
+    for factual_dataset in tqdm(factual_datasets):
         IS_estimates.append(run_vanilla_IS(
             evaluation_policy, behavior_policy, factual_dataset))
     
@@ -75,25 +80,25 @@ def generate_requested_graphs():
     
     # Figure 1: RMSE vs. total budget (cost ratio = 10)
     print("\nGenerating Figure 1: RMSE vs. budget (cost ratio = 10)")
-    expert_cost_ratio10 = 0.01  # c_x
-    llm_cost_ratio10 = 0.001    # c_y (ratio = 10)
+    expert_cost_ratio10 = 10  # c_x
+    llm_cost_ratio10 = 1    # c_y (ratio = 10)
     rmse_vs_budget_ratio10 = rmse_vs_budget(
         budgets, expert_allocations, expert_cost_ratio10, llm_cost_ratio10,
         state_distribution, true_reward_means, true_reward_stds,
         behavior_policy, evaluation_policy,
         doctor_bias, doctor_std, llm_bias, llm_std,
-        true_evaluation_policy_value)
+        true_evaluation_policy_value, factual_datasets)
     
     # Figure 2: RMSE vs. total budget (cost ratio = 20)
     print("\nGenerating Figure 2: RMSE vs. budget (cost ratio = 20)")
-    expert_cost_ratio20 = 0.01   # c_x
-    llm_cost_ratio20 = 0.0005    # c_y (ratio = 20)
+    expert_cost_ratio20 = 20   # c_x
+    llm_cost_ratio20 = 1    # c_y (ratio = 20)
     rmse_vs_budget_ratio20 = rmse_vs_budget(
         budgets, expert_allocations, expert_cost_ratio20, llm_cost_ratio20,
         state_distribution, true_reward_means, true_reward_stds,
         behavior_policy, evaluation_policy,
         doctor_bias, doctor_std, llm_bias, llm_std,
-        true_evaluation_policy_value)
+        true_evaluation_policy_value, factual_datasets)
     
     # Figure 3: RMSE vs. cost ratio (budget = 20)
     print("\nGenerating Figure 3: RMSE vs. cost ratio (budget = 20)")
@@ -102,7 +107,7 @@ def generate_requested_graphs():
         state_distribution, true_reward_means, true_reward_stds,
         behavior_policy, evaluation_policy,
         doctor_bias, doctor_std, llm_bias, llm_std,
-        true_evaluation_policy_value)
+        true_evaluation_policy_value, factual_datasets)
     
     # Figure 4: RMSE vs. cost ratio (budget = 40)
     print("\nGenerating Figure 4: RMSE vs. cost ratio (budget = 40)")
@@ -111,7 +116,7 @@ def generate_requested_graphs():
         state_distribution, true_reward_means, true_reward_stds,
         behavior_policy, evaluation_policy,
         doctor_bias, doctor_std, llm_bias, llm_std,
-        true_evaluation_policy_value)
+        true_evaluation_policy_value, factual_datasets)
     
     # Plot all figures with consistent y-axis scaling
     plot_results(rmse_vs_budget_ratio10, budgets, expert_allocations, baseline_IS_rmse,
@@ -136,28 +141,22 @@ def rmse_vs_budget(budgets, expert_allocations, expert_cost, llm_cost,
                   state_distribution, true_reward_means, true_reward_stds,
                   behavior_policy, evaluation_policy,
                   doctor_bias, doctor_std, llm_bias, llm_std,
-                  true_evaluation_policy_value):
+                  true_evaluation_policy_value, factual_datasets):
     """
     Generate RMSE data for different budgets with fixed cost ratio.
     """
-    results = {
-        'ISplus': {allocation: [] for allocation in expert_allocations},
-        'DMplus_IS': {allocation: [] for allocation in expert_allocations}
+    value_estimates = {
+        'ISplus': {
+              allocation: {budget: [] for budget in budgets}
+              for allocation in expert_allocations},
+        'DMplus_IS': {
+              allocation: {budget: [] for budget in budgets}
+              for allocation in expert_allocations},
     }
     
     # For each budget value
-    for budget in tqdm(budgets):
-        # We'll generate datasets and process all allocations for each dataset
-        # to reduce computation time
-        ISplus_estimates = {allocation: [] for allocation in expert_allocations}
-        DMplus_IS_estimates = {allocation: [] for allocation in expert_allocations}
-        
-        for _ in range(NUM_DATASETS):
-            # Generate factual dataset (shared across all allocation percentages)
-            factual_dataset = generate_dataset_of_trajectories(
-                state_distribution, true_reward_means, true_reward_stds,
-                behavior_policy, num_trajectories=TRAJECTORIES_PER_DATASET)
-            
+    for factual_dataset in tqdm(factual_datasets):
+        for budget in budgets:
             # Process each allocation percentage
             for expert_percent in expert_allocations:
                 # Calculate budget allocation
@@ -177,50 +176,55 @@ def rmse_vs_budget(budgets, expert_allocations, expert_cost, llm_cost,
                     true_reward_means + llm_bias, llm_std)
                 
                 # Run OPE algorithms
-                ISplus_estimates[expert_percent].append(
+                value_estimates["ISplus"][expert_percent][budget].append(
                     run_ISplus(evaluation_policy, behavior_policy, factual_dataset,
                            [doctor_annotations, llm_annotations]))
-                DMplus_IS_estimates[expert_percent].append(
+                value_estimates["DMplus_IS"][expert_percent][budget].append(
                     run_DMplus_IS(evaluation_policy, behavior_policy, factual_dataset,
                            [doctor_annotations, llm_annotations]))
-        
-        # Calculate RMSE for each allocation percentage
-        for expert_percent in expert_allocations:
-            results['ISplus'][expert_percent].append(calculate_policy_value_rmse(
-                ISplus_estimates[expert_percent], true_evaluation_policy_value))
-            results['DMplus_IS'][expert_percent].append(calculate_policy_value_rmse(
-                DMplus_IS_estimates[expert_percent], true_evaluation_policy_value))
-    
+
+    results = {
+        'ISplus': {allocation: [] for allocation in expert_allocations},
+        'DMplus_IS': {allocation: [] for allocation in expert_allocations},
+    }
+
+    # Calculate RMSE for each allocation percentage
+    for allocation in expert_allocations:
+      for budget in budgets:
+          results['ISplus'][allocation].append(
+              calculate_policy_value_rmse(
+                  value_estimates['ISplus'][allocation][budget],
+                  true_evaluation_policy_value))
+          results['DMplus_IS'][allocation].append(
+              calculate_policy_value_rmse(
+                  value_estimates['DMplus_IS'][allocation][budget],
+                  true_evaluation_policy_value))
+
     return results
 
 def rmse_vs_cost_ratio(cost_ratios, expert_allocations, fixed_budget,
                        state_distribution, true_reward_means, true_reward_stds,
                        behavior_policy, evaluation_policy,
                        doctor_bias, doctor_std, llm_bias, llm_std,
-                       true_evaluation_policy_value):
+                       true_evaluation_policy_value, factual_datasets):
     """
     Generate RMSE data for different cost ratios with fixed budget.
     """
-    results = {
-        'ISplus': {allocation: [] for allocation in expert_allocations},
-        'DMplus_IS': {allocation: [] for allocation in expert_allocations}
+    value_estimates = {
+        'ISplus': {
+              allocation: {cost_ratio: [] for cost_ratio in cost_ratios}
+              for allocation in expert_allocations},
+        'DMplus_IS': {
+              allocation: {cost_ratio: [] for cost_ratio in cost_ratios}
+              for allocation in expert_allocations},
     }
     
-    # For each cost ratio
-    for ratio in tqdm(cost_ratios):
-        # Set costs based on ratio, keeping expert cost fixed at 0.01
-        expert_cost = 0.01
-        llm_cost = expert_cost / ratio
-        
-        
-        ISplus_estimates = {allocation: [] for allocation in expert_allocations}
-        DMplus_IS_estimates = {allocation: [] for allocation in expert_allocations}
-        
-        for _ in range(NUM_DATASETS):
-            # Generate factual dataset (shared across all allocation percentages)
-            factual_dataset = generate_dataset_of_trajectories(
-                state_distribution, true_reward_means, true_reward_stds,
-                behavior_policy, num_trajectories=TRAJECTORIES_PER_DATASET)
+    for factual_dataset in tqdm(factual_datasets):
+        # For each cost ratio
+        for ratio in cost_ratios:
+            # Set costs based on ratio, keeping expert cost fixed at 0.01
+            expert_cost = 0.01
+            llm_cost = expert_cost / ratio
             
             # Process each allocation percentage
             for expert_percent in expert_allocations:
@@ -241,19 +245,29 @@ def rmse_vs_cost_ratio(cost_ratios, expert_allocations, fixed_budget,
                     true_reward_means + llm_bias, llm_std)
                 
                 # Run OPE algorithms
-                ISplus_estimates[expert_percent].append(
+                value_estimates["ISplus"][expert_percent][ratio].append(
                     run_ISplus(evaluation_policy, behavior_policy, factual_dataset,
                            [doctor_annotations, llm_annotations]))
-                DMplus_IS_estimates[expert_percent].append(
+                value_estimates["DMplus_IS"][expert_percent][ratio].append(
                     run_DMplus_IS(evaluation_policy, behavior_policy, factual_dataset,
                            [doctor_annotations, llm_annotations]))
-        
-        # Calculate RMSE for each allocation percentage
-        for expert_percent in expert_allocations:
-            results['ISplus'][expert_percent].append(calculate_policy_value_rmse(
-                ISplus_estimates[expert_percent], true_evaluation_policy_value))
-            results['DMplus_IS'][expert_percent].append(calculate_policy_value_rmse(
-                DMplus_IS_estimates[expert_percent], true_evaluation_policy_value))
+
+    results = {
+        'ISplus': {allocation: [] for allocation in expert_allocations},
+        'DMplus_IS': {allocation: [] for allocation in expert_allocations},
+    }
+
+    # Calculate RMSE for each allocation percentage
+    for allocation in expert_allocations:
+      for ratio in cost_ratios:
+          results['ISplus'][allocation].append(
+              calculate_policy_value_rmse(
+                  value_estimates['ISplus'][allocation][ratio],
+                  true_evaluation_policy_value))
+          results['DMplus_IS'][allocation].append(
+              calculate_policy_value_rmse(
+                  value_estimates['DMplus_IS'][allocation][ratio],
+                  true_evaluation_policy_value))
     
     return results
 

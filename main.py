@@ -120,7 +120,7 @@ def main():
 
   # Plotting
   true_evaluation_policy_value = calculate_true_policy_value(
-      evaluation_policy, state_distribution, true_reward_means)
+      evaluation_policy, e_distribution, true_reward_means)
 
   # IS
   IS_rmse = calculate_policy_value_rmse(IS_estimates,
