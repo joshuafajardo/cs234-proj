@@ -25,8 +25,8 @@ def main():
 
   # Doctor Noise
   doctor_bias = np.array([
-      [0., 0.],
-      [0., 0.],
+      [0.1, 0.1],
+      [0.1, 0.1],
   ])
   doctor_std = np.array([
       [0.9, 0.9],
@@ -35,8 +35,8 @@ def main():
 
   # LLM Noise
   llm_bias = np.array([
-      [0., 0.],
-      [0., 0.],
+      [0.3, 0.3],
+      [0.3, 0.3],
   ])
   llm_std = np.array([
       [0.7, 0.7],
@@ -53,20 +53,12 @@ def main():
       [0.5,  0.5],
   ])
 
-  # Only generate trajectories for the behavior policy
-  IS_estimates = []
-  # Generate a value for each dataset
-  for _ in range(NUM_DATASETS):
-    factual_dataset = generate_dataset_of_trajectories(
-        state_distribution, true_reward_means, true_reward_stds,
-        behavior_policy, num_trajectories=TRAJECTORIES_PER_DATASET)
-
-    IS_estimates.append(run_vanilla_IS(
-        evaluation_policy, behavior_policy, factual_dataset))
-
   # Try out different budgeting strategies
   all_budgets_per_dataset = [0, 100, 200, 300, 400, 500]
   doctor_percent_spends = [0, 10, 50, 90, 100]
+
+  # After processing each dataset, store the value estimates here:
+  IS_estimates = []
   ISplus_estimates = {
       budget: {percent: [] for percent in doctor_percent_spends} \
       for budget in all_budgets_per_dataset}
@@ -95,6 +87,7 @@ def main():
             state_distribution, true_reward_means, true_reward_stds,
             behavior_policy, num_trajectories=TRAJECTORIES_PER_DATASET)
 
+        # Standard IS
         IS_estimates.append(run_vanilla_IS(
             evaluation_policy, behavior_policy, factual_dataset))
         
@@ -106,9 +99,12 @@ def main():
             factual_dataset, num_llm_annotations_per_dataset,
             true_reward_means + llm_bias, llm_std)
 
+        # IS+
         ISplus_estimates[budget_per_dataset][doctor_percent_spend].append(
             run_ISplus(evaluation_policy, behavior_policy, factual_dataset,
                        [doctor_annotations, llm_annotations]))
+
+        # DM+-IS
         DMplus_IS_estimates[budget_per_dataset][doctor_percent_spend].append(
             run_DMplus_IS(evaluation_policy, behavior_policy, factual_dataset,
                        [doctor_annotations, llm_annotations]))
@@ -145,9 +141,9 @@ def main():
     plt.plot(all_budgets_per_dataset, DMplus_IS_rmses[doctor_percent],
              label=f"DM+-IS @ {doctor_percent}%.")
 
-  plt.title("RMSEs vs Total Budget for IS+ with Various Doctor-Budget "
-            "Allocations (with IS baseline) in the Positive-Reward-Only "
-            "Scenario.")
+  plt.title("RMSEs vs Total Budget for IS+ and DM+-IS with Various "
+            "Doctor-Budget Allocations (with IS baseline) in the"
+            "Positive-Reward-Only Scenario.")
   plt.xlabel("Total Budget Per Dataset")
   plt.ylabel("RMSE")
   plt.legend()
