@@ -5,7 +5,7 @@ from tqdm import tqdm
 from two_state import *
 from trajectory_classes import *
 
-NUM_DATASETS = 1000  # Large number for better RMSE estimate
+NUM_DATASETS = 2000  # Large number for better RMSE estimate
 TRAJECTORIES_PER_DATASET = 50
 
 def generate_requested_graphs():
@@ -120,20 +120,20 @@ def generate_requested_graphs():
     
     # Plot all figures with consistent y-axis scaling
     plot_results(rmse_vs_budget_ratio10, budgets, expert_allocations, baseline_IS_rmse,
-                "RMSE vs. Budget (Expert:LLM Cost Ratio = 10)", 
+                "RMSE vs. Budget (Expert:Predictive Model Cost Ratio = 10)", 
                 "Budget", "fig1")
     
     plot_results(rmse_vs_budget_ratio20, budgets, expert_allocations, baseline_IS_rmse,
-                "RMSE vs. Budget (Expert:LLM Cost Ratio = 20)", 
+                "RMSE vs. Budget (Expert:Predictive Model Cost Ratio = 20)", 
                 "Budget", "fig2")
     
     plot_results(rmse_vs_ratio_budget20, cost_ratios, expert_allocations, baseline_IS_rmse,
                 "RMSE vs. Cost Ratio (Budget = 20)", 
-                "Expert:LLM Cost Ratio", "fig3")
+                "Expert:Predictive Model Cost Ratio", "fig3")
     
     plot_results(rmse_vs_ratio_budget40, cost_ratios, expert_allocations, baseline_IS_rmse,
                 "RMSE vs. Cost Ratio (Budget = 40)", 
-                "Expert:LLM Cost Ratio", "fig4")
+                "Expert:Predictive Model Cost Ratio", "fig4")
     
     print("\nAll graphs generated!")
 
@@ -306,7 +306,7 @@ def plot_results(results, x_values, expert_allocations, baseline_IS_rmse,
     plt.title(f"{title_base} - Both Methods")
     plt.xlabel(x_label)
     plt.ylabel("RMSE")
-    plt.ylim(min_rmse, max_rmse)
+    # plt.ylim(min_rmse, max_rmse)
     plt.grid(True, alpha=0.3)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
@@ -327,7 +327,7 @@ def plot_results(results, x_values, expert_allocations, baseline_IS_rmse,
     plt.title(f"{title_base} - IS+")
     plt.xlabel(x_label)
     plt.ylabel("RMSE")
-    plt.ylim(min_rmse, max_rmse)
+    # plt.ylim(min_rmse, max_rmse)
     plt.grid(True, alpha=0.3)
     plt.legend()
     plt.tight_layout()
@@ -351,7 +351,7 @@ def plot_results(results, x_values, expert_allocations, baseline_IS_rmse,
     plt.title(f"{title_base} - DM+-IS")
     plt.xlabel(x_label)
     plt.ylabel("RMSE")
-    plt.ylim(min_rmse, max_rmse)
+    # plt.ylim(min_rmse, max_rmse)
     plt.grid(True, alpha=0.3)
     plt.legend()
     plt.tight_layout()
