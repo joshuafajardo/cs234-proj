@@ -139,7 +139,8 @@ def main():
   IS_rmse = calculate_policy_value_rmse(IS_estimates,
                                         true_evaluation_policy_value)
   plt.axhline(
-      y=np.mean(IS_rmse), label="Ordinary IS", color="gray", linestyle="--")
+      y=np.mean(IS_rmse), label="Ordinary IS (No annotations)", color="gray",
+      linestyle="--")
   plt.xlabel("Total Budget Per Dataset")
   plt.ylabel("RMSE")
   plt.legend()
@@ -152,7 +153,7 @@ def main():
   # DM-IS baseline (using the shortcut of 0 budget to avoid separately creating
   # an unannotated estimator)
   plt.axhline(
-      y=np.mean(DMplus_IS_rmses[0][0]), label="DM-IS (Not annotated)",
+      y=np.mean(DMplus_IS_rmses[0][0]), label="DM-IS (No annotations)",
       color="gray", linestyle="--")
   plt.xlabel("Total Budget Per Dataset")
   plt.ylabel("RMSE")
