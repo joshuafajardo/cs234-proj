@@ -118,7 +118,6 @@ def generate_requested_graphs():
         doctor_bias, doctor_std, llm_bias, llm_std,
         true_evaluation_policy_value, factual_datasets)
     
-    # Plot all figures with consistent y-axis scaling
     plot_results(rmse_vs_budget_ratio10, budgets, expert_allocations, baseline_IS_rmse,
                 "RMSE vs. Budget (Expert:Predictive Model Cost Ratio = 10)", 
                 "Budget", "fig1")
@@ -222,9 +221,8 @@ def rmse_vs_cost_ratio(cost_ratios, expert_allocations, fixed_budget,
     for factual_dataset in tqdm(factual_datasets):
         # For each cost ratio
         for ratio in cost_ratios:
-            # Set costs based on ratio, keeping expert cost fixed at 0.01
-            expert_cost = 0.01
-            llm_cost = expert_cost / ratio
+            llm_cost = 1  # Fixed LLM cost
+            expert_cost = llm_cost * ratio  # Expert cost varies with ratio
             
             # Process each allocation percentage
             for expert_percent in expert_allocations:
@@ -277,6 +275,7 @@ def plot_results(results, x_values, expert_allocations, baseline_IS_rmse,
     Create the three types of plots for each figure:
     1. Combined methods plot
     2-3. Individual method plots with baseline
+    Optimized for poster visibility with extra large text and no titles
     """
     # Get overall min and max RMSE for consistent y-axis
     all_rmses = [baseline_IS_rmse]  # Include baseline in scaling
@@ -287,76 +286,90 @@ def plot_results(results, x_values, expert_allocations, baseline_IS_rmse,
     min_rmse = min(all_rmses) * 0.9  # Add some padding
     max_rmse = max(all_rmses) * 1.1
     
+    plt.rcParams.update({
+        'font.size': 24,                # Base font size
+        'axes.labelsize': 28,           # Axis labels
+        'axes.titlesize': 30,           # Title size (though we're not using it)
+        'xtick.labelsize': 24,          # X-tick labels
+        'ytick.labelsize': 24,          # Y-tick labels
+        'legend.fontsize': 22,          # Legend text
+        'figure.titlesize': 32          # Figure title (not used)
+    })
+    
     # Color map for expert allocations
     colors = plt.cm.viridis(np.linspace(0, 1, len(expert_allocations)))
     
     # 1. Combined plot (both methods)
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(16, 12))
     
     for i, allocation in enumerate(expert_allocations):
         plt.plot(x_values, results['ISplus'][allocation], 'o-', 
-                 color=colors[i], label=f'IS+ @ {allocation}%')
+                 color=colors[i], linewidth=3, markersize=10,
+                 label=f'IS+ @ {allocation}%')
         plt.plot(x_values, results['DMplus_IS'][allocation], 's--', 
-                 color=colors[i], label=f'DM+-IS @ {allocation}%')
+                 color=colors[i], linewidth=3, markersize=10,
+                 label=f'DM+-IS @ {allocation}%')
     
     # Add baseline IS
-    plt.axhline(y=baseline_IS_rmse, color='black', linestyle='--', 
+    plt.axhline(y=baseline_IS_rmse, color='black', linestyle='--', linewidth=3,
                 label='Ordinary IS')
     
-    plt.title(f"{title_base} - Both Methods")
-    plt.xlabel(x_label)
-    plt.ylabel("RMSE")
-    # plt.ylim(min_rmse, max_rmse)
+    plt.xlabel(x_label, fontweight='bold')
+    plt.ylabel("RMSE", fontweight='bold')
     plt.grid(True, alpha=0.3)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', frameon=True, 
+               facecolor='white', framealpha=0.9, edgecolor='black')
     plt.tight_layout()
-    plt.savefig(f"{fig_prefix}_combined.png")
+    plt.savefig(f"{fig_prefix}_combined.png", dpi=300)
     plt.close()
     
     # 2. IS+ plot
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(14, 10))
     
     for i, allocation in enumerate(expert_allocations):
         plt.plot(x_values, results['ISplus'][allocation], 'o-', 
-                 color=colors[i], label=f'{allocation}%')
+                 color=colors[i], linewidth=3, markersize=10,
+                 label=f'{allocation}%')
     
     # Add baseline IS
-    plt.axhline(y=baseline_IS_rmse, color='gray', linestyle='--', 
+    plt.axhline(y=baseline_IS_rmse, color='gray', linestyle='--', linewidth=3,
                 label='Ordinary IS')
     
-    plt.title(f"{title_base} - IS+")
-    plt.xlabel(x_label)
-    plt.ylabel("RMSE")
-    # plt.ylim(min_rmse, max_rmse)
+    plt.xlabel(x_label, fontweight='bold')
+    plt.ylabel("RMSE", fontweight='bold')
     plt.grid(True, alpha=0.3)
-    plt.legend()
+    plt.legend(frameon=True, facecolor='white', framealpha=0.9, 
+               edgecolor='black', loc='best')
     plt.tight_layout()
-    plt.savefig(f"{fig_prefix}_isplus.png")
+    plt.savefig(f"{fig_prefix}_isplus.png", dpi=300)
     plt.close()
     
     # 3. DM+-IS plot
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(14, 10))
     
     for i, allocation in enumerate(expert_allocations):
         plt.plot(x_values, results['DMplus_IS'][allocation], 's-', 
-                 color=colors[i], label=f'{allocation}%')
+                 color=colors[i], linewidth=3, markersize=10,
+                 label=f'{allocation}%')
     
     # For DM+-IS, we'll use the 0% budget allocation at budget 0 as baseline
     if 0 in expert_allocations and len(x_values) > 0:
         dmis_baseline = results['DMplus_IS'][0][0] if x_values[0] == 0 else None
         if dmis_baseline:
-            plt.axhline(y=dmis_baseline, color='gray', linestyle='--', 
+            plt.axhline(y=dmis_baseline, color='gray', linestyle='--', linewidth=3,
                       label='DM-IS (Not annotated)')
     
-    plt.title(f"{title_base} - DM+-IS")
-    plt.xlabel(x_label)
-    plt.ylabel("RMSE")
-    # plt.ylim(min_rmse, max_rmse)
+    # No title (removed as requested)
+    plt.xlabel(x_label, fontweight='bold')
+    plt.ylabel("RMSE", fontweight='bold')
     plt.grid(True, alpha=0.3)
-    plt.legend()
+    plt.legend(frameon=True, facecolor='white', framealpha=0.9, 
+               edgecolor='black', loc='best')
     plt.tight_layout()
-    plt.savefig(f"{fig_prefix}_dmplus.png")
+    plt.savefig(f"{fig_prefix}_dmplus.png", dpi=300)
     plt.close()
+    
+    plt.rcParams.update(plt.rcParamsDefault)
 
 if __name__ == "__main__":
     print("Generating all requested graphs...")
