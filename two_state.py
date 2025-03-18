@@ -24,11 +24,6 @@ def calculate_policy_value_rmse(
   return np.sqrt(np.mean((estimated_policy_values - true_policy_value) ** 2))
 
 
-# TODO: Implement if needed
-# Tang & Wiens distinguish a policy's value and it's value function; that's why
-# we have this second function here. This calculates a single value for the
-# policy, while the function above gives a value for each state for the given
-# policy.
 def calculate_true_policy_value(policy, state_distribution, reward_means):
   return np.sum(state_distribution @ (policy * reward_means))
 
@@ -232,9 +227,6 @@ def run_vanilla_IS(
 
     ordinary_IS_value_estimates.append(
         np.sum(inv_prop_scores * rewards) / len(trajectory))
-    # TODO: Evaluate if we really do need to use weighted_IS_value_estimates.
-    # weighted_IS_value_estimates.append(
-    #     np.sum(inv_prop_scores * rewards) / np.sum(inv_prop_scores))
   
   return np.mean(ordinary_IS_value_estimates)
 
