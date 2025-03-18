@@ -2,6 +2,11 @@ import numpy as np
 
 from trajectory_classes import *
 
+'''
+DESCRIPTION: Implements core functions for running importance sampling
+methods. Specifically, generates datasets and runs importance sampling.
+'''
+
 RNG = np.random.default_rng(123)
 
 
